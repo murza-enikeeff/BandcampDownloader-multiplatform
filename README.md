@@ -97,6 +97,18 @@ Translations are stored in the `lang/` folder as standard JSON files (`en.json`,
 
 ---
 
+### ☕ Support My Work
+If you find this project useful, you can support its development:
+
+* **EVM (MetaMask / ETH / USDT / BNB):** `0x2E195eF738d77CDe97b35E08FFC5010E7B9F0227`
+* **Tron (USDT TRC-20):** `TWR9RasQEJkkaDkzjJELgXFMrL626jV5x4`
+* **Solana (SOL):** `5t3pjNcazfVZQoLRjrcaFWUvrtBE7ev7h3u5exMbQ54p`
+* **Bitcoin (BTC):** `bc1q43s93dxy8mfgqzrh2mn3j43a030mjuwf284h3h`
+
+Thank you 🫶
+
+---
+
 ## 🇷🇺 Русский
 
 Кроссплатформенное десктопное приложение для скачивания треков, альбомов и полных дискографий с **Bandcamp** на **Windows**, **macOS (Intel и Apple Silicon)** и **Linux**.
@@ -187,3 +199,15 @@ python3 make_icons.py
 1. Скопируйте существующий файл (например, `lang/en.json` → `lang/de.json`).
 2. Укажите отображаемое название языка в поле `"_lang_name"` и переведите значения ключей.
 3. При добавлении нового `.json` файла в папку `lang/` репозитория все пользователи собранных релизов получат его автоматически при следующем запуске программы.
+
+---
+
+### ☕ Поддержать мою работу
+Если вы нашли этот проект полезным, вы можете поддержать эту разработку:
+
+* **EVM (MetaMask / ETH / USDT / BNB):** `0x2E195eF738d77CDe97b35E08FFC5010E7B9F0227`
+* **Tron (USDT TRC-20):** `TWR9RasQEJkkaDkzjJELgXFMrL626jV5x4`
+* **Solana (SOL):** `5t3pjNcazfVZQoLRjrcaFWUvrtBE7ev7h3u5exMbQ54p`
+* **Bitcoin (BTC):** `bc1q43s93dxy8mfgqzrh2mn3j43a030mjuwf284h3h`
+
+Спасибо 🫶

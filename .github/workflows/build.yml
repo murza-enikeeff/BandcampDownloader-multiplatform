@@ -132,9 +132,9 @@ jobs:
 
       - name: Build on Windows (.exe)
         if: runner.os == 'Windows'
+        shell: bash
         run: |
-          if not exist lang mkdir lang
-          mkdir release_out
+          mkdir -p lang release_out
           pyinstaller --noconfirm \
             --onefile \
             --windowed \
@@ -145,7 +145,7 @@ jobs:
             --add-data "lang;lang" \
             --collect-all curl_cffi \
             main.py
-          copy "dist\BandcampDownloader-${{ matrix.platform_name }}.exe" release_out\
+          cp "dist/BandcampDownloader-${{ matrix.platform_name }}.exe" release_out/
 
       - name: Build on Linux (binary)
         if: runner.os == 'Linux'
