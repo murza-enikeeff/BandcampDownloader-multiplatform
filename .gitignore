@@ -1,0 +1,29 @@
+# Generated icons
+icon.png
+icon.ico
+icon.icns
+
+# Local runtime config
+settings.json
+
+# PyInstaller & build artifacts
+build/
+dist/
+release_out/
+release_pkg/
+*.spec
+app_version.txt
+win_version_info.txt
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# macOS system files
+.DS_Store
+
+# Windows system files
+*.ini

@@ -1,0 +1,174 @@
+name: Build Multiplatform Releases
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+
+          - os: macos-15-intel
+            platform_name: macOS-Intel-x64
+            python_version: '3.12'
+            python_arch: 'x64'
+            pyinstaller_arch: 'x86_64'
+
+          - os: macos-15
+            platform_name: macOS-AppleSilicon-arm64
+            python_version: '3.12'
+            python_arch: 'arm64'
+            pyinstaller_arch: 'arm64'
+
+          - os: windows-latest
+            platform_name: Windows-x64
+            python_version: '3.12'
+            python_arch: 'x64'
+
+          - os: ubuntu-latest
+            platform_name: Linux-x64
+            python_version: '3.12'
+            python_arch: 'x64'
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python (${{ matrix.python_arch }})
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python_version }}
+          architecture: ${{ matrix.python_arch }}
+
+      - name: Install Linux Tkinter dependency
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y python3-tk
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 mutagen curl_cffi pillow pyinstaller
+
+      - name: Generate App Icons and Windows Version Info
+        shell: bash
+        run: |
+          python make_icons.py
+          python - << 'EOF'
+          import re
+          from pathlib import Path
+
+          text = Path("main.py").read_text(encoding="utf-8")
+          m = re.search(r'APP_VERSION\s*=\s*["\']([^"\']+)["\']', text)
+          ver = m.group(1) if m else "1.0.0"
+          parts = ( [int(x) for x in re.findall(r'\d+', ver)] + [0, 0, 0, 0] )[:4]
+          tuple_str = ", ".join(map(str, parts))
+
+          Path("app_version.txt").write_text(ver, encoding="utf-8")
+          Path("win_version_info.txt").write_text(f"""VSVersionInfo(
+            ffi=FixedFileInfo(
+              filevers=({tuple_str}),
+              prodvers=({tuple_str}),
+              mask=0x3f,
+              flags=0x0,
+              OS=0x40004,
+              fileType=0x1,
+              subtype=0x0,
+              date=(0, 0)
+            ),
+            kids=[
+              StringFileInfo([
+                StringTable(
+                  '040904B0',
+                  [
+                    StringStruct('CompanyName', 'murza-enikeeff'),
+                    StringStruct('FileDescription', 'Bandcamp Downloader (Multiplatform)'),
+                    StringStruct('FileVersion', '{ver}'),
+                    StringStruct('InternalName', 'BandcampDownloader'),
+                    StringStruct('OriginalFilename', 'BandcampDownloader.exe'),
+                    StringStruct('ProductName', 'Bandcamp Downloader (Multiplatform)'),
+                    StringStruct('ProductVersion', '{ver}')
+                  ]
+                )
+              ]),
+              VarFileInfo([VarStruct('Translation', [1033, 1200])])
+            ]
+          )
+          """, encoding="utf-8")
+          EOF
+
+      - name: Build on macOS (${{ matrix.platform_name }})
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p lang release_out
+          APP_VERSION=$(cat app_version.txt)
+
+          pyinstaller --noconfirm \
+            --windowed \
+            --name "BandcampDownloader" \
+            --target-arch ${{ matrix.pyinstaller_arch }} \
+            --icon "icon.icns" \
+            --add-data "icon.png:." \
+            --add-data "lang:lang" \
+            --collect-all curl_cffi \
+            main.py
+
+          PLIST="dist/BandcampDownloader.app/Contents/Info.plist"
+          plutil -replace CFBundleShortVersionString -string "$APP_VERSION" "$PLIST"
+          plutil -replace CFBundleVersion -string "$APP_VERSION" "$PLIST"
+          plutil -replace NSHumanReadableCopyright -string "Bandcamp Downloader (Multiplatform)" "$PLIST"
+
+          codesign --force --deep --sign - "dist/BandcampDownloader.app"
+          ditto -c -k --keepParent "dist/BandcampDownloader.app" "release_out/BandcampDownloader-${{ matrix.platform_name }}.zip"
+
+      - name: Build on Windows (.exe)
+        if: runner.os == 'Windows'
+        run: |
+          if not exist lang mkdir lang
+          mkdir release_out
+          pyinstaller --noconfirm \
+            --onefile \
+            --windowed \
+            --name "BandcampDownloader-${{ matrix.platform_name }}" \
+            --icon "icon.ico" \
+            --version-file "win_version_info.txt" \
+            --add-data "icon.png;." \
+            --add-data "lang;lang" \
+            --collect-all curl_cffi \
+            main.py
+          copy "dist\BandcampDownloader-${{ matrix.platform_name }}.exe" release_out\
+
+      - name: Build on Linux (binary)
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p lang release_out
+          pyinstaller --noconfirm \
+            --onefile \
+            --windowed \
+            --name "BandcampDownloader-${{ matrix.platform_name }}" \
+            --add-data "icon.png:." \
+            --add-data "lang:lang" \
+            --collect-all curl_cffi \
+            main.py
+          cp "dist/BandcampDownloader-${{ matrix.platform_name }}" release_out/
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BandcampDownloader-${{ matrix.platform_name }}
+          path: release_out/*
+
+      - name: Publish to GitHub Releases (on tag push)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release_out/*
